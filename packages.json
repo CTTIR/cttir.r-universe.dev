@@ -1,0 +1,18 @@
+[
+  {
+    "package": "qviewparsR",
+    "url": "https://github.com/CTTIR/qviewparsR"
+  },
+  {
+    "package": "cuvis.r",
+    "url": "https://github.com/CTTIR/cuvis.r"
+  },
+  {
+    "package": "tivis.r",
+    "url": "https://github.com/CTTIR/tivis.r"
+  },
+  {
+    "package": "hyperspectR",
+    "url": "https://github.com/CTTIR/hyperspectR"
+  }
+]
