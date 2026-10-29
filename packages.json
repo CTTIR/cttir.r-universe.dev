@@ -14,5 +14,13 @@
   {
     "package": "hyperspectR",
     "url": "https://github.com/CTTIR/hyperspectR"
+  },
+  {
+    "package": "cellspecR",
+    "url": "https://github.com/CTTIR/cellspecR"
+  },
+  {
+    "package": "songR",
+    "url": "https://github.com/CTTIR/songR"
   }
 ]
