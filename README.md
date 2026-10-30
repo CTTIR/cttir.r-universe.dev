@@ -2,13 +2,16 @@
 
 Package registry for the [CTTIR r-universe](https://cttir.r-universe.dev).
 
-`packages.json` lists the repositories r-universe builds. Adding an entry here
-publishes that package to <https://cttir.r-universe.dev>, so it can be
-installed with:
+`packages.json` lists the repositories R-universe builds. After a registry change
+is merged and published, R-universe discovers it and schedules builds. An entry
+alone does not guarantee that an installable package exists. Check the
+[build dashboard](https://cttir.r-universe.dev/builds) before installing:
 
 ```r
 install.packages("tivis.r", repos = c("https://cttir.r-universe.dev",
                                       "https://cloud.r-project.org"))
+library(tivis.r)
+packageDescription("tivis.r", fields = c("Version", "RemoteUrl", "RemoteSha"))
 ```
 
 This also lets packages on CRAN declare optional dependencies that are not
@@ -17,10 +20,47 @@ how `hyperspectR` suggests `cuvis.r` and `tivis.r`.
 
 ## Notes
 
-`cuvis.r` wraps the proprietary Cubert CUVIS SDK. It builds here in stub mode,
-since the SDK is not available on the build machines; that is sufficient for
-dependency resolution, but reading `.cu3s` files requires the SDK locally.
-`tivis.r` is pure R and fully functional as built.
+The registry tracks each repository's default branch unless an explicit `branch`
+is supplied. A successful build can therefore change without a version-number
+change. Record `RemoteSha` for an analysis, and retain the package artifact when
+long-term reproducibility is required; R-universe
+[does not archive all older versions](https://docs.r-universe.dev/install/reproducibility.html).
+
+`cuvis.r` wraps the proprietary Cubert CUVIS SDK. Stub builds can satisfy package
+dependencies but cannot read `.cu3s` files; that operation needs an SDK-enabled
+installation. Follow the [package instructions](https://github.com/CTTIR/cuvis.r).
+`tivis.r` does not require that SDK. Package availability and build status do not
+establish correctness for a particular instrument or scientific workflow.
+
+## Maintain the registry
+
+Prerequisites: Python 3.9 or newer and Git. No Python packages are required.
+
+```sh
+python3 scripts/validate_registry.py
+python3 -m unittest discover -s tests -v
+python3 scripts/validate_registry.py --upstream
+```
+
+The first two commands are offline and run in CI. The opt-in upstream check
+reads public GitHub metadata, resolves each selected reference to a commit and
+checks its DESCRIPTION identity; it does not install, build or publish packages.
+GitHub rate limits or unavailable metadata cause a failed check, never a pass.
+
+Add only reviewed public CTTIR repositories. Package names must match DESCRIPTION
+exactly and be unique. Use `subdir` for a package below the repository root;
+optional `branch` and `metadata` follow the
+[R-universe registry format](https://docs.r-universe.dev/publish/set-up.html).
+Keep the default branch implicit unless tracking a particular branch/tag or
+`*release` is intentional. This registry's validator deliberately restricts URLs
+to the CTTIR GitHub organization; supporting a new host requires a policy change.
+
+Before publication, review the registry diff and upstream check. After an
+authorized merge/push, verify the public API, build dashboard and installation
+from a fresh library. To recover from a bad registry change, revert that reviewed
+entry and verify the subsequent hosted rebuild; changing this file does not
+immediately remove previously built artifacts. See [MAINTENANCE.md](MAINTENANCE.md)
+for the current audit and remaining gates.
 
 ## Use of LLM tools
 
