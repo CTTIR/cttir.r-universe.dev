@@ -2,12 +2,14 @@
 
 import argparse
 import base64
+import http.client
 import json
 import math
 import os
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -97,11 +99,21 @@ def fetch_json(url):
             if any(ord(char) < 33 or ord(char) > 126 for char in token):
                 raise RegistryError("GitHub token contains invalid header characters.")
             request.add_unredirected_header('Authorization', 'Bearer ' + token)
-    try:
-        with urllib.request.urlopen(request, timeout=15) as response:
-            raw = response.read(1048577)
-    except (urllib.error.URLError, TimeoutError) as exc:
-        raise RegistryError("Upstream API unavailable; retry the explicit network check later.") from exc
+    for attempt in range(1, 4):
+        try:
+            with urllib.request.urlopen(request, timeout=15) as response:
+                raw = response.read(1048577)
+            break
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (500, 502, 503, 504) or attempt == 3:
+                raise RegistryError(
+                    f"Upstream API returned HTTP {exc.code} after {attempt} attempts."
+                ) from exc
+        except (urllib.error.URLError, TimeoutError, ConnectionError,
+                http.client.RemoteDisconnected, http.client.IncompleteRead) as exc:
+            if attempt == 3:
+                raise RegistryError("Upstream API connection failed after 3 attempts.") from exc
+        time.sleep(attempt)
     if len(raw) > 1048576:
         raise RegistryError("Upstream metadata exceeds 1 MiB.")
     return decode(raw)

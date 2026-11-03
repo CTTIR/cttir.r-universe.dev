@@ -1,5 +1,23 @@
 # Registry maintenance
 
+## Live-check transport follow-up — 2026-11-03
+
+The expanded registry was published at `19b7d32d7061b2604f7974e27157b4d152167497`.
+Its offline hosted checks passed; the live upstream job failed with an
+uninformative connection error. Independent live request evidence recorded five
+HTTP 500 responses and one HTTP 504, each recovering on a second read. These
+failures are separate from the still-unconfirmed R-universe App installation.
+
+The network reader now makes at most three attempts for transient server errors
+or interrupted connections, with one- and two-second delays. Authentication,
+permission, missing-source, rate-limit and invalid-metadata failures are not
+retried or treated as success. Terminal diagnostics expose only the HTTP status
+or connection-failure category. Seven regression tests cover recovery, exhausted
+retries, whole-body retry, terminal status, malformed/oversized responses and
+redaction; all 27 offline tests pass on Python 3.9 and 3.15. The registry entries
+and package-source validation rules are unchanged. Actual hosted results are
+recorded separately after publication.
+
 ## Public package discovery — 2026-11-03
 
 The expanded public catalogue contains 39 package candidates in 38 of CTTIR's
