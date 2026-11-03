@@ -1,26 +1,160 @@
 [
   {
-    "package": "qviewparsR",
-    "url": "https://github.com/CTTIR/qviewparsR"
+    "package": "bambamR",
+    "url": "https://github.com/CTTIR/bambamR"
   },
   {
-    "package": "cuvis.r",
-    "url": "https://github.com/CTTIR/cuvis.r"
+    "package": "bloodspottR",
+    "url": "https://github.com/CTTIR/bloodspottR"
   },
   {
-    "package": "tivis.r",
-    "url": "https://github.com/CTTIR/tivis.r"
+    "package": "brainwritR",
+    "url": "https://github.com/CTTIR/brainwritR"
   },
   {
-    "package": "hyperspectR",
-    "url": "https://github.com/CTTIR/hyperspectR"
+    "package": "cellreportR",
+    "url": "https://github.com/CTTIR/cellreportR"
   },
   {
     "package": "cellspecR",
     "url": "https://github.com/CTTIR/cellspecR"
   },
   {
+    "package": "cttiR",
+    "url": "https://github.com/CTTIR/cttiR"
+  },
+  {
+    "package": "cuvis.r",
+    "url": "https://github.com/CTTIR/cuvis.r"
+  },
+  {
+    "package": "delphyr",
+    "url": "https://github.com/CTTIR/delphyR",
+    "subdir": "packages/delphyr"
+  },
+  {
+    "package": "delphyrApp",
+    "url": "https://github.com/CTTIR/delphyR",
+    "subdir": "packages/delphyrApp"
+  },
+  {
+    "package": "dynasimR",
+    "url": "https://github.com/CTTIR/dynasimR"
+  },
+  {
+    "package": "gatekeepR",
+    "url": "https://github.com/CTTIR/gatekeepR"
+  },
+  {
+    "package": "harbouR",
+    "url": "https://github.com/CTTIR/harbouR"
+  },
+  {
+    "package": "hexmakR",
+    "url": "https://github.com/CTTIR/hexmakR"
+  },
+  {
+    "package": "hyperannotatR",
+    "url": "https://github.com/CTTIR/hyperannotatR"
+  },
+  {
+    "package": "hyperloom",
+    "url": "https://github.com/CTTIR/hyperloom"
+  },
+  {
+    "package": "hypermodR",
+    "url": "https://github.com/CTTIR/hypermodR"
+  },
+  {
+    "package": "hyperspectaculR",
+    "url": "https://github.com/CTTIR/hyperspectaculR"
+  },
+  {
+    "package": "hyperspectR",
+    "url": "https://github.com/CTTIR/hyperspectR"
+  },
+  {
+    "package": "inferguidR",
+    "url": "https://github.com/CTTIR/inferguidR"
+  },
+  {
+    "package": "libscanR",
+    "url": "https://github.com/CTTIR/libscanR"
+  },
+  {
+    "package": "molpathR",
+    "url": "https://github.com/CTTIR/molpathR"
+  },
+  {
+    "package": "mssrscopR",
+    "url": "https://github.com/CTTIR/mssrscopR"
+  },
+  {
+    "package": "phenoloom",
+    "url": "https://github.com/CTTIR/phenoloom"
+  },
+  {
+    "package": "phenoscapR",
+    "url": "https://github.com/CTTIR/phenoscapR"
+  },
+  {
+    "package": "pressR",
+    "url": "https://github.com/CTTIR/pressR"
+  },
+  {
+    "package": "qupflowR",
+    "url": "https://github.com/CTTIR/qupflowR"
+  },
+  {
+    "package": "qviewparsR",
+    "url": "https://github.com/CTTIR/qviewparsR"
+  },
+  {
+    "package": "reflowR",
+    "url": "https://github.com/CTTIR/reflowR"
+  },
+  {
+    "package": "researchR",
+    "url": "https://github.com/CTTIR/researchR"
+  },
+  {
+    "package": "sandtablR",
+    "url": "https://github.com/CTTIR/sandtablR"
+  },
+  {
+    "package": "scimagR",
+    "url": "https://github.com/CTTIR/scimagR"
+  },
+  {
+    "package": "scimapR",
+    "url": "https://github.com/CTTIR/scimapR"
+  },
+  {
+    "package": "segmantR",
+    "url": "https://github.com/CTTIR/segmantR"
+  },
+  {
+    "package": "shieldR",
+    "url": "https://github.com/CTTIR/shieldR"
+  },
+  {
     "package": "songR",
     "url": "https://github.com/CTTIR/songR"
+  },
+  {
+    "package": "sorenR",
+    "url": "https://github.com/CTTIR/sorenR"
+  },
+  {
+    "package": "themakR",
+    "url": "https://github.com/CTTIR/themakR"
+  },
+  {
+    "package": "tivis.r",
+    "url": "https://github.com/CTTIR/tivis.r"
+  },
+  {
+    "package": "zhncommandR",
+    "url": "https://github.com/CTTIR/zhncommandR"
   }
 ]

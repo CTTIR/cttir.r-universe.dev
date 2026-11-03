@@ -4,6 +4,7 @@ import argparse
 import base64
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -89,6 +90,13 @@ def validate(rows):
 def fetch_json(url):
     request = urllib.request.Request(url, headers={'User-Agent': 'CTTIR-registry-check',
                                                   'Accept': 'application/vnd.github+json'})
+    # Keep credentials off redirected requests and non-GitHub destinations.
+    if urllib.parse.urlsplit(url)[:2] == ('https', 'api.github.com'):
+        token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
+        if token:
+            if any(ord(char) < 33 or ord(char) > 126 for char in token):
+                raise RegistryError("GitHub token contains invalid header characters.")
+            request.add_unredirected_header('Authorization', 'Bearer ' + token)
     try:
         with urllib.request.urlopen(request, timeout=15) as response:
             raw = response.read(1048577)
@@ -97,6 +105,30 @@ def fetch_json(url):
     if len(raw) > 1048576:
         raise RegistryError("Upstream metadata exceeds 1 MiB.")
     return decode(raw)
+
+
+def description_package(description):
+    try:
+        if not isinstance(description, dict) or description.get('encoding') != 'base64':
+            raise ValueError('encoding')
+        raw = base64.b64decode(''.join(description['content'].split()), validate=True).decode('utf-8')
+    except (ValueError, KeyError, TypeError, AttributeError) as exc:
+        raise RegistryError("Expected a readable DESCRIPTION at the resolved commit.") from exc
+    raw = raw.replace('\r\n', '\n').replace('\r', '\n')
+    package = re.findall(r'^Package:[ \t]*(\S+)[ \t]*$', raw, re.MULTILINE)
+    if len(package) != 1:
+        raise RegistryError("DESCRIPTION must contain one unambiguous Package field.")
+    return package[0]
+
+
+def resolve_commit(api, ref, fetch):
+    if not isinstance(ref, str) or not ref:
+        raise RegistryError("Upstream reference is unavailable.")
+    commit = fetch(api + '/commits/' + urllib.parse.quote(ref, safe=''))
+    sha = commit.get('sha') if isinstance(commit, dict) else None
+    if not isinstance(sha, str) or not re.fullmatch(r'[a-f0-9]{40}', sha):
+        raise RegistryError("Upstream reference did not resolve to a commit.")
+    return sha
 
 
 def check_upstream(rows, fetch=fetch_json):
@@ -113,33 +145,103 @@ def check_upstream(rows, fetch=fetch_json):
         if ref == '*release':
             release = fetch(api + '/releases/latest')
             ref = release.get('tag_name') if isinstance(release, dict) else None
-        if not isinstance(ref, str) or not ref:
-            raise RegistryError("Upstream reference is unavailable.")
-        commit = fetch(api + '/commits/' + urllib.parse.quote(ref, safe=''))
-        sha = commit.get('sha') if isinstance(commit, dict) else None
-        if not isinstance(sha, str) or not re.fullmatch(r'[a-f0-9]{40}', sha):
-            raise RegistryError("Upstream reference did not resolve to a commit.")
+        sha = resolve_commit(api, ref, fetch)
         path = row.get('subdir', '')
         path = (path + '/' if path else '') + 'DESCRIPTION'
         description = fetch(api + '/contents/' + urllib.parse.quote(path, safe='/') + '?ref=' + sha)
-        try:
-            if not isinstance(description, dict) or description.get('encoding') != 'base64':
-                raise ValueError('encoding')
-            raw = base64.b64decode(''.join(description['content'].split()), validate=True).decode('utf-8')
-        except (ValueError, KeyError, TypeError, AttributeError) as exc:
-            raise RegistryError("Expected a readable DESCRIPTION at the resolved commit.") from exc
-        raw = raw.replace('\r\n', '\n').replace('\r', '\n')
-        package = re.findall(r'^Package:[ \t]*(\S+)[ \t]*$', raw, re.MULTILINE)
-        if package != [row['package']]:
+        if description_package(description) != row['package']:
             raise RegistryError("Registered package differs from its upstream DESCRIPTION.")
         result.append({'package': row['package'], 'repository': repo, 'commit': sha})
     return result
+
+
+def discover_packages(fetch=fetch_json):
+    """Find public packages at repository roots and packages/*, without writes."""
+    found, seen_repos = [], set()
+
+    def tree(api, sha):
+        value = fetch(api + '/git/trees/' + sha)
+        if (not isinstance(value, dict) or value.get('truncated') is not False
+                or not isinstance(value.get('tree'), list)):
+            raise RegistryError("Expected a complete upstream Git tree.")
+        entries = value['tree']
+        paths = set()
+        for entry in entries:
+            if (not isinstance(entry, dict) or not isinstance(entry.get('path'), str)
+                    or not entry['path'] or '/' in entry['path'] or '\\' in entry['path']
+                    or entry['path'] in ('.', '..') or entry['path'] in paths
+                    or entry.get('type') not in ('blob', 'tree', 'commit')
+                    or not isinstance(entry.get('sha'), str)
+                    or not re.fullmatch(r'[a-f0-9]{40}', entry['sha'])):
+                raise RegistryError("Malformed or ambiguous upstream Git tree.")
+            paths.add(entry['path'])
+        return entries
+
+    def add_package(repo, sha, entries, subdir=''):
+        descriptions = [e for e in entries if e['path'] == 'DESCRIPTION']
+        if not descriptions:
+            return
+        if (descriptions[0]['type'] != 'blob'
+                or descriptions[0].get('mode') not in ('100644', '100755')):
+            raise RegistryError("Package DESCRIPTION must be an ordinary file.")
+        path = (subdir + '/' if subdir else '') + 'DESCRIPTION'
+        description = fetch('https://api.github.com/repos/' + repo + '/contents/'
+                            + urllib.parse.quote(path, safe='/') + '?ref=' + sha)
+        row = {'package': description_package(description), 'url': 'https://github.com/' + repo}
+        if subdir:
+            row['subdir'] = subdir
+        validate([row])
+        found.append(row)
+
+    for page in range(1, 11):
+        catalog = fetch('https://api.github.com/orgs/CTTIR/repos?type=public&per_page=100&page=' + str(page))
+        if not isinstance(catalog, list) or len(catalog) > 100:
+            raise RegistryError("Expected a public repository catalogue page.")
+        for metadata in catalog:
+            if (not isinstance(metadata, dict) or metadata.get('private') is not False
+                    or not isinstance(metadata.get('full_name'), str)
+                    or not re.fullmatch(r'CTTIR/[A-Za-z0-9_.-]+', metadata['full_name'])
+                    or metadata['full_name'] in seen_repos
+                    or not isinstance(metadata.get('archived'), bool)
+                    or not isinstance(metadata.get('disabled'), bool)):
+                raise RegistryError("Unexpected, private or duplicate repository in public catalogue.")
+            repo = metadata['full_name']
+            seen_repos.add(repo)
+            if metadata['archived'] or metadata['disabled']:
+                continue
+            api = 'https://api.github.com/repos/' + repo
+            sha = resolve_commit(api, metadata.get('default_branch'), fetch)
+            entries = tree(api, sha)
+            add_package(repo, sha, entries)
+            # Only deliberate package locations: never recurse through tests,
+            # fixtures, installed dependencies or vendored copies.
+            for entry in entries:
+                if entry['path'] == 'packages' and entry['type'] == 'tree':
+                    for child in tree(api, entry['sha']):
+                        if child['type'] == 'tree':
+                            add_package(repo, sha, tree(api, child['sha']), 'packages/' + child['path'])
+        if len(catalog) < 100:
+            if found:
+                validate(found)
+            return sorted(found, key=lambda row: row['package'].lower())
+    raise RegistryError("Public repository catalogue exceeds the discovery bound.")
+
+
+def check_discovery(rows, fetch=fetch_json):
+    listed = {(row['package'], row['url'].removesuffix('.git').lower(), row.get('subdir', ''))
+              for row in validate(rows)}
+    discovered = discover_packages(fetch)
+    missing = [row for row in discovered
+               if (row['package'], row['url'].lower(), row.get('subdir', '')) not in listed]
+    return {'discovered_packages': len(discovered), 'missing': missing}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('registry', nargs='?', type=Path, default=Path(__file__).resolve().parents[1] / 'packages.json')
     parser.add_argument('--upstream', action='store_true', help='Read public GitHub metadata; never publish or build')
+    parser.add_argument('--discover', action='store_true',
+                        help='Fail if public root/packages/* packages are missing; never rewrite the registry')
     args = parser.parse_args()
     try:
         with args.registry.open('rb') as stream:
@@ -147,9 +249,16 @@ def main():
         if len(raw) > 1048576:
             raise RegistryError('Registry exceeds 1 MiB.')
         rows = validate(decode(raw))
-        report = {'status': 'pass', 'packages': len(rows), 'upstream_checked': args.upstream}
+        report = {'status': 'pass', 'packages': len(rows), 'upstream_checked': args.upstream,
+                  'discovery_checked': args.discover}
         if args.upstream:
             report['upstream'] = check_upstream(rows)
+        if args.discover:
+            report['discovery'] = check_discovery(rows)
+            if report['discovery']['missing']:
+                report['status'] = 'fail'
+                print(json.dumps(report))
+                return 1
         print(json.dumps(report))
         return 0
     except (RegistryError, OSError) as exc:

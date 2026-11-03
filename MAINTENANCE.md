@@ -1,4 +1,55 @@
-# Registry maintenance — 2026-10-30
+# Registry maintenance
+
+## Public package discovery — 2026-11-03
+
+The expanded public catalogue contains 39 package candidates in 38 of CTTIR's
+51 public repositories: 37 root packages and the two packages under
+`delphyR/packages/`. The previous registry contains six entries. Two reflowR test
+fixtures are excluded from discovery. Exact package names come from upstream
+DESCRIPTION files, including the lowercase `delphyr` and `delphyrApp` names.
+
+The implementation expands the registry to these sources, retains implicit
+default-branch tracking, and adds a read-only discovery check. Discovery examines
+public repository roots and `packages/*`, follows catalogue pagination, and
+reports unlisted packages. It never rewrites the registry. Malformed catalogue
+responses, truncated trees, ambiguous identities and unreadable DESCRIPTION
+files fail explicitly. Other subdirectory layouts remain a manual review task.
+
+CI keeps offline checks for pull requests and adds authenticated public-source
+identity/discovery checks on main pushes, manual dispatch and a daily schedule.
+Its token has read-only repository permissions. Authentication is sent only to
+the GitHub API and is not forwarded on redirects. No private repository is added
+or inspected by discovery. No active package checkout or DESCRIPTION is edited.
+
+The public R-universe API initially returned six successful indexed artifacts;
+three matched observed upstream and three referred to older commits. The generated universe's update run
+41632668743 succeeded and queued newer cellspecR and hyperspectR builds while
+cuvis.r was running. These are pending builds, not evidence of new-source failure.
+That run also reported no R-universe App installation for CTTIR and a failed
+commit-status update. The authenticated organization installation inventory
+independently listed only Codecov. R-universe App 87942 requests metadata read
+and commit-status write permissions; select this registry and its public package
+repositories when installing. The available browser host could not be reached,
+so installation has not been performed or claimed.
+
+Local verification and publication gates are recorded with the final source
+review. Twenty offline regression tests cover the previous validator plus
+public-only discovery, pagination beyond 100 repositories, root/subdirectory
+identity, fixture exclusion, malformed responses, and credential isolation.
+Hosted build and index observations must be tied to the resulting source
+commits. Registry inclusion does not establish package scientific correctness or
+formal rOpenSci software review.
+
+Before publishing this registry change, the separately prepared sanitized
+libscanR main was verified at `0784aec135f2e0970c0e0b163b633971f795d58b`.
+Its current package tree requires users to obtain their own atomic reference;
+the older public core contained legacy reference data. The registry follows
+the public default branch. Restricted-data candidate commits remain local and
+must never be used as registry branches or merged into this publication.
+This source gate is independent of the paused machine-wide cloning/folder-layout
+work.
+
+## Initial registry audit — 2026-10-30
 
 This repository tells R-universe which public CTTIR package repositories to
 build. Its principal journeys are a correct registry change and installation
