@@ -53,6 +53,10 @@ The first two commands are offline and run in CI. The opt-in upstream check
 reads public GitHub metadata, resolves each selected reference to a commit and
 checks its DESCRIPTION identity; it does not install, build or publish packages.
 GitHub rate limits or unavailable metadata cause a failed check, never a pass.
+Transient HTTP 500/502/503/504 responses and interrupted connections receive at
+most three attempts, with one- and two-second delays. Permission, not-found,
+rate-limit and malformed-metadata failures remain terminal. Error messages report
+HTTP status or connection failure without credentials or response contents.
 The discovery check reads the public organization catalogue, follows pagination,
 and identifies packages at repository roots and `packages/*`. It reports missing
 entries without rewriting the registry. Other package locations must be reviewed
