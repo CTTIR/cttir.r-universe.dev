@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.validate_registry import RegistryError, check_upstream, decode, validate
+from scripts.validate_registry import RegistryError, check_upstream, decode, resolve_commit, validate
 
 
 ENTRY = {'package': 'exampleR', 'url': 'https://github.com/CTTIR/exampleR'}
@@ -62,8 +62,8 @@ class RegistryTests(unittest.TestCase):
         calls = []
         def fetch(url):
             calls.append(url)
-            if '/commits/' in url:
-                return {'sha': 'a' * 40}
+            if '/commits?' in url:
+                return [{'sha': 'a' * 40}]
             if '/contents/' in url:
                 return {'encoding': 'base64', 'content': base64.b64encode(b'Package: exampleR\nVersion: 1.0\n').decode()}
             return {'private': False, 'archived': False, 'full_name': 'CTTIR/exampleR', 'default_branch': 'main'}
@@ -71,14 +71,26 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(result[0]['commit'], 'a' * 40)
         self.assertTrue(calls[-1].endswith('?ref=' + 'a' * 40))
 
+    def test_reference_resolves_to_exactly_one_listed_commit(self):
+        api = 'https://api.github.com/repos/CTTIR/exampleR'
+        calls = []
+        def fetch(url):
+            calls.append(url)
+            return [{'sha': 'c' * 40}]
+        self.assertEqual(resolve_commit(api, 'release/v1', fetch), 'c' * 40)
+        self.assertEqual(calls, [api + '/commits?per_page=1&sha=release%2Fv1'])
+        for commits in ([], {'sha': 'a' * 40}, [{'sha': 'a' * 40}, {'sha': 'b' * 40}], [{'sha': 'short'}]):
+            with self.subTest(commits=commits), self.assertRaises(RegistryError):
+                resolve_commit(api, 'main', lambda _, commits=commits: commits)
+
     def test_private_archived_and_wrong_package_upstreams_fail(self):
         for changed in ({'private': True}, {'archived': True}, {'full_name': 1}):
             with self.subTest(changed=changed), self.assertRaises(RegistryError):
                 check_upstream([ENTRY], lambda _: {'private': False, 'archived': False,
                                                    'full_name': 'CTTIR/exampleR', **changed})
         def fetch(url):
-            if '/commits/' in url:
-                return {'sha': 'a' * 40}
+            if '/commits?' in url:
+                return [{'sha': 'a' * 40}]
             if '/contents/' in url:
                 return {'encoding': 'base64', 'content': base64.b64encode(b'Package: differentR\n').decode()}
             return {'private': False, 'archived': False, 'full_name': 'CTTIR/exampleR', 'default_branch': 'main'}
@@ -91,20 +103,20 @@ class RegistryTests(unittest.TestCase):
             calls.append(url)
             if url.endswith('/releases/latest'):
                 return {'tag_name': 'v1.0'}
-            if '/commits/' in url:
-                return {'sha': 'b' * 40}
+            if '/commits?' in url:
+                return [{'sha': 'b' * 40}]
             if '/contents/' in url:
                 return {'encoding': 'base64', 'content': base64.b64encode(b'Package: exampleR\r\nVersion: 1.0\r\n').decode()}
             return {'private': False, 'archived': False, 'full_name': 'CTTIR/exampleR', 'default_branch': 'main'}
         check_upstream([{**ENTRY, 'branch': '*release', 'subdir': 'packages/R'}], fetch)
-        self.assertTrue(calls[-2].endswith('/commits/v1.0'))
+        self.assertTrue(calls[-2].endswith('/commits?per_page=1&sha=v1.0'))
         self.assertIn('/contents/packages/R/DESCRIPTION?ref=', calls[-1])
 
     def test_malformed_upstream_description_is_not_accepted(self):
         for content in ('not base64!', base64.b64encode(b'Package: exampleR\nPackage: exampleR\n').decode()):
             def fetch(url):
-                if '/commits/' in url:
-                    return {'sha': 'a' * 40}
+                if '/commits?' in url:
+                    return [{'sha': 'a' * 40}]
                 if '/contents/' in url:
                     return {'encoding': 'base64', 'content': content}
                 return {'private': False, 'archived': False, 'full_name': 'CTTIR/exampleR', 'default_branch': 'main'}

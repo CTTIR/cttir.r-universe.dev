@@ -34,11 +34,11 @@ def description(name):
 def public_sources():
     return {
         CATALOG + '1': [metadata('alphaR'), metadata('monorepo'), metadata('website')],
-        API + '/repos/CTTIR/alphaR/commits/main': {'sha': COMMIT},
+        API + '/repos/CTTIR/alphaR/commits?per_page=1&sha=main': [{'sha': COMMIT}],
         API + '/repos/CTTIR/alphaR/git/trees/' + COMMIT:
             {'truncated': False, 'tree': [entry('DESCRIPTION'), entry('tests', 'tree')]},
         API + '/repos/CTTIR/alphaR/contents/DESCRIPTION?ref=' + COMMIT: description('alphaR'),
-        API + '/repos/CTTIR/monorepo/commits/main': {'sha': COMMIT},
+        API + '/repos/CTTIR/monorepo/commits?per_page=1&sha=main': [{'sha': COMMIT}],
         API + '/repos/CTTIR/monorepo/git/trees/' + COMMIT:
             {'truncated': False, 'tree': [entry('packages', 'tree', PACKAGES)]},
         API + '/repos/CTTIR/monorepo/git/trees/' + PACKAGES:
@@ -47,7 +47,7 @@ def public_sources():
             {'truncated': False, 'tree': [entry('DESCRIPTION', mode='100755')]},
         API + '/repos/CTTIR/monorepo/contents/packages/nested/DESCRIPTION?ref=' + COMMIT:
             description('nestedR'),
-        API + '/repos/CTTIR/website/commits/main': {'sha': COMMIT},
+        API + '/repos/CTTIR/website/commits?per_page=1&sha=main': [{'sha': COMMIT}],
         API + '/repos/CTTIR/website/git/trees/' + COMMIT:
             {'truncated': False, 'tree': [entry('README.md')]},
     }

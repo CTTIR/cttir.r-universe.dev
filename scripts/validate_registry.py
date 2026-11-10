@@ -136,7 +136,10 @@ def description_package(description):
 def resolve_commit(api, ref, fetch):
     if not isinstance(ref, str) or not ref:
         raise RegistryError("Upstream reference is unavailable.")
-    commit = fetch(api + '/commits/' + urllib.parse.quote(ref, safe=''))
+    # The single-commit endpoint includes every file diff and can exceed the
+    # response limit; the one-item commit list returns the same SHA without it.
+    commits = fetch(api + '/commits?per_page=1&sha=' + urllib.parse.quote(ref, safe=''))
+    commit = commits[0] if isinstance(commits, list) and len(commits) == 1 else None
     sha = commit.get('sha') if isinstance(commit, dict) else None
     if not isinstance(sha, str) or not re.fullmatch(r'[a-f0-9]{40}', sha):
         raise RegistryError("Upstream reference did not resolve to a commit.")
