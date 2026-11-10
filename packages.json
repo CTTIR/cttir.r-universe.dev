@@ -74,6 +74,14 @@
     "url": "https://github.com/CTTIR/hyperspectR"
   },
   {
+    "package": "infercalcR",
+    "url": "https://github.com/CTTIR/infercalcR"
+  },
+  {
+    "package": "infereportR",
+    "url": "https://github.com/CTTIR/infereportR"
+  },
+  {
     "package": "inferguidR",
     "url": "https://github.com/CTTIR/inferguidR"
   },
@@ -120,6 +128,10 @@
   {
     "package": "sandtablR",
     "url": "https://github.com/CTTIR/sandtablR"
+  },
+  {
+    "package": "scientometricsInR",
+    "url": "https://github.com/CTTIR/scientometrics-in-r"
   },
   {
     "package": "scimagR",
