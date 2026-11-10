@@ -58,8 +58,10 @@ most three attempts, with one- and two-second delays. Permission, not-found,
 rate-limit and malformed-metadata failures remain terminal. Error messages report
 HTTP status or connection failure without credentials or response contents.
 The discovery check reads the public organization catalogue, follows pagination,
-and identifies packages at repository roots and `packages/*`. It reports missing
-entries without rewriting the registry. Other package locations must be reviewed
+and identifies packages at repository roots and `packages/*`. A DESCRIPTION that
+declares a `Type` other than `Package`, such as a bookdown project's `Type: Book`,
+only lists dependencies and is skipped. Missing entries are reported without
+rewriting the registry. Other package locations must be reviewed
 and registered explicitly. Tests, fixtures and vendored dependency trees are not
 searched. A malformed or truncated response fails the check.
 

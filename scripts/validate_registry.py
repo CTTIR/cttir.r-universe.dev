@@ -119,18 +119,30 @@ def fetch_json(url):
     return decode(raw)
 
 
-def description_package(description):
+def description_text(description):
     try:
         if not isinstance(description, dict) or description.get('encoding') != 'base64':
             raise ValueError('encoding')
         raw = base64.b64decode(''.join(description['content'].split()), validate=True).decode('utf-8')
     except (ValueError, KeyError, TypeError, AttributeError) as exc:
         raise RegistryError("Expected a readable DESCRIPTION at the resolved commit.") from exc
-    raw = raw.replace('\r\n', '\n').replace('\r', '\n')
-    package = re.findall(r'^Package:[ \t]*(\S+)[ \t]*$', raw, re.MULTILINE)
+    return raw.replace('\r\n', '\n').replace('\r', '\n')
+
+
+def description_package(description):
+    package = re.findall(r'^Package:[ \t]*(\S+)[ \t]*$', description_text(description), re.MULTILINE)
     if len(package) != 1:
         raise RegistryError("DESCRIPTION must contain one unambiguous Package field.")
     return package[0]
+
+
+def describes_package(description):
+    """R packages omit Type or declare Type: Package. Bookdown projects declare
+    Type: Book and use DESCRIPTION only to list their dependencies."""
+    kind = re.findall(r'^Type:[ \t]*(\S+)[ \t]*$', description_text(description), re.MULTILINE)
+    if len(kind) > 1:
+        raise RegistryError("DESCRIPTION must contain at most one Type field.")
+    return not kind or kind[0] == 'Package'
 
 
 def resolve_commit(api, ref, fetch):
@@ -202,6 +214,8 @@ def discover_packages(fetch=fetch_json):
         path = (subdir + '/' if subdir else '') + 'DESCRIPTION'
         description = fetch('https://api.github.com/repos/' + repo + '/contents/'
                             + urllib.parse.quote(path, safe='/') + '?ref=' + sha)
+        if not describes_package(description):
+            return
         row = {'package': description_package(description), 'url': 'https://github.com/' + repo}
         if subdir:
             row['subdir'] = subdir

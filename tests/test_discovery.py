@@ -26,9 +26,9 @@ def entry(path, kind='blob', sha='d' * 40, mode=None):
             'mode': mode or ('040000' if kind == 'tree' else '100644')}
 
 
-def description(name):
+def description(name, extra=''):
     return {'encoding': 'base64', 'content': base64.b64encode(
-        ('Package: ' + name + '\nVersion: 1.0\n').encode()).decode()}
+        ('Package: ' + name + '\nVersion: 1.0\n' + extra).encode()).decode()}
 
 
 def public_sources():
@@ -107,6 +107,20 @@ class DiscoveryTests(unittest.TestCase):
             sources[API + '/repos/CTTIR/alphaR/git/trees/' + COMMIT] = changed
             with self.subTest(changed=changed), self.assertRaises(RegistryError):
                 discover_packages(sources.__getitem__)
+
+    def test_bookdown_project_description_is_not_a_package(self):
+        sources = public_sources()
+        sources[CATALOG + '1'].append(metadata('book'))
+        sources[API + '/repos/CTTIR/book/commits?per_page=1&sha=main'] = [{'sha': COMMIT}]
+        sources[API + '/repos/CTTIR/book/git/trees/' + COMMIT] = {'truncated': False, 'tree': [entry('DESCRIPTION')]}
+        book = API + '/repos/CTTIR/book/contents/DESCRIPTION?ref=' + COMMIT
+        sources[book] = description('placeholder', 'Type: Book\n')
+        self.assertEqual([row['package'] for row in discover_packages(sources.__getitem__)], ['alphaR', 'nestedR'])
+        sources[book] = description('bookR', 'Type: Package\n')
+        self.assertIn('bookR', [row['package'] for row in discover_packages(sources.__getitem__)])
+        sources[book] = description('bookR', 'Type: Book\nType: Package\n')
+        with self.assertRaises(RegistryError):
+            discover_packages(sources.__getitem__)
 
     def test_malformed_description_does_not_silently_disappear(self):
         sources = public_sources()
