@@ -152,9 +152,5 @@
   {
     "package": "tivis.r",
     "url": "https://github.com/CTTIR/tivis.r"
-  },
-  {
-    "package": "zhncommandR",
-    "url": "https://github.com/CTTIR/zhncommandR"
   }
 ]
