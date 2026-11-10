@@ -2,11 +2,10 @@
 
 Package registry for the [CTTIR r-universe](https://cttir.r-universe.dev).
 
-The November 2026 inventory covers 41 packages from 40 public CTTIR
+The November 2026 inventory covers 40 packages from 39 public CTTIR
 repositories. The complete package list and source URLs are in
 [`packages.json`](packages.json). `delphyr` and `delphyrApp` share the
 `delphyR` repository and declare their separate package subdirectories.
-`scientometricsInR` is built from the `scientometrics-in-r` repository.
 Private repositories and package-shaped test fixtures are not registered.
 
 `packages.json` lists the repositories R-universe builds. After a registry change
